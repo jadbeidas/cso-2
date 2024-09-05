@@ -18,7 +18,7 @@ libsay.a: cheer.o grunt.o
 	ar rcs $@ $^
 
 guesser: guesser.o libsay.a
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) -o $@ $^
 
 clean:
 	rm --force *.o guesser libsay.a
