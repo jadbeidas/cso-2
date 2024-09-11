@@ -5,9 +5,20 @@
 
 char **string_split(const char *input, const char *sep, int *num_words) {
     *num_words = 0;
-    size_t input_len = strlen(input);
+    if (!input || !sep) return NULL;
+
+    //size_t input_len = strlen(input);
     char **words = NULL; // array of split words
     const char *cur_word = input; // start tracking current word/position in input
+
+    // leading sep case, add empty string
+    if (strchr(sep, *cur_word)) {
+        words = realloc(words, (*num_words + 1) * sizeof(char *));
+        if (!words) return NULL;
+
+        words[*num_words] = strdup("");
+        (*num_words)++;
+    }
 
     while (*cur_word) {
         size_t leading_sep = strspn(cur_word, sep); // find the start of next word
@@ -15,7 +26,7 @@ char **string_split(const char *input, const char *sep, int *num_words) {
 
         size_t word_len = strcspn(cur_word, sep); // find the end of the word
 
-        if (leading_sep > 0 || word_len > 0) { // check if theres either a leading sep char or a non empty word
+        if (word_len > 0) { // check if theres either a leading sep char or a non empty word
             char *word = malloc(word_len + 1);
             if (!word) {
                 for (int i = 0; i < *num_words; i++) {
@@ -25,7 +36,7 @@ char **string_split(const char *input, const char *sep, int *num_words) {
                 return NULL;
             }
 
-            memcpy(word, cur_word, word_len)
+            memcpy(word, cur_word, word_len);
             word[word_len] = '\0';
 
             char **new_words = realloc(words, (*num_words + 1) * sizeof(char *)); // create space for an additional word
