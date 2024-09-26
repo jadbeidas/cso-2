@@ -1,13 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
 #include <signal.h>
-#include <errno.h>
+#include <unistd.h>
 #include <sys/wait.h>
-#include <linux/time.h>
 
 #define NANOSECONDS_IN_SECOND 1000000000L
+
+volatile sig_atomic_t signal_received = 0;
+
+void signal_handler(int sig) {
+    signal_received = 1;
+}
 
 // helper function to calculate time difference
 struct timespec diff(struct timespec start, struct timespec end) {
@@ -156,39 +160,34 @@ void signal_self_time(struct timespec overhead) {
     printf("Average signal to self time: %ld.%09ld seconds\n", total.tv_sec, total.tv_nsec);
 }
 
-// scenario 5: signal round-trip with another process
-void signal_round_trip(int partner_pid, struct timespec overhead) {
+// scenario 5: sending signals between processes
+void signal_exchange_time(struct timespec overhead, pid_t other_pid) {
     struct timespec start, end, delta, total = {0, 0};
 
-    struct sigaction sa;
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGUSR1, &sa, NULL);
+    signal(SIGUSR1, signal_handler);
+    
+    signal_received = 0;
 
-    for(int i = 0; i < 1000; i++) {
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        kill(partner_pid, SIGUSR1); // send signal to partner process
-        pause(); // wait for signal back
-        clock_gettime(CLOCK_MONOTONIC, &end);
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    kill(other_pid, SIGUSR1);
+    while(!signal_received);  // wait for the signal handler
+    clock_gettime(CLOCK_MONOTONIC, &end);
 
-        delta = diff(start, end);
-        delta.tv_sec -= overhead.tv_sec;
-        delta.tv_nsec -= overhead.tv_nsec;
-        if (delta.tv_nsec < 0) {
-            delta.tv_sec -= 1;
-            delta.tv_nsec += NANOSECONDS_IN_SECOND;
-        }
-
-        total.tv_sec += delta.tv_sec;
-        total.tv_nsec += delta.tv_nsec;
-        if (total.tv_nsec >= NANOSECONDS_IN_SECOND) {
-            total.tv_sec += 1;
-            total.tv_nsec -= NANOSECONDS_IN_SECOND;
-        }
+    delta = diff(start, end);
+    delta.tv_sec -= overhead.tv_sec;
+    delta.tv_nsec -= overhead.tv_nsec;
+    if (delta.tv_nsec < 0) {
+        delta.tv_sec -= 1;
+        delta.tv_nsec += NANOSECONDS_IN_SECOND;
     }
 
-    total.tv_sec /= 1000;
-    total.tv_nsec /= 1000;
-    printf("Average signal round-trip time: %ld.%09ld seconds\n", total.tv_sec, total.tv_nsec);
+    total.tv_sec += delta.tv_sec;
+    total.tv_nsec += delta.tv_nsec;
+    if (total.tv_nsec >= NANOSECONDS_IN_SECOND) {
+        total.tv_sec += 1;
+        total.tv_nsec -= NANOSECONDS_IN_SECOND;
+    }
+    printf("Signal round-trip time: %ld.%09ld seconds\n", total.tv_sec, total.tv_nsec);
 }
 
 int main(int argc, char *argv[]) {
@@ -214,21 +213,27 @@ int main(int argc, char *argv[]) {
             signal_self_time(overhead);
             break;
         case 5: {
-            int partner_pid;
-            printf("Enter partner PID: ");
-            scanf("%d", &partner_pid);
-            signal_round_trip(partner_pid, overhead);
+            printf("PID: %d\n", getpid());
+            printf("Enter PID of the other process: ");
+            pid_t other_pid;
+            scanf("%d", &other_pid);
+            signal_exchange_time(overhead, other_pid);
             break;
         }
         case -1: {
-            int my_pid = getpid();
-            printf("My PID: %d\n", my_pid);
-            int partner_pid;
-            printf("Enter partner PID: ");
-            scanf("%d", &partner_pid);
+            printf("PID: %d\n", getpid());
+            pid_t other_pid;
+            printf("Enter PID of process to signal: ");
+            scanf("%d", &other_pid);
+
+            // Set up signal handler for this process to receive SIGUSR1
+            signal(SIGUSR1, signal_handler);
+
             while (1) {
-                pause();
-                kill(partner_pid, SIGUSR1); // send signal back
+                if (signal_received) {
+                    signal_received = 0;  // Reset the flag
+                    kill(other_pid, SIGUSR1);  // Send signal back
+                }
             }
             break;
         }

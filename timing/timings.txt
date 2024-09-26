@@ -1,0 +1,17 @@
+Average empty function time: 0.000999699 seconds
+
+Average getppid() time: 0.000999921 seconds
+
+Average system("/bin/true") time: 0.000485087 seconds
+
+Average signal to self time: 0.000000840 seconds
+
+Signal round-trip time: 0.000040805 seconds
+
+I found overhead by calculating the difference in time between executing clock_gettime twice consecutively before executing the scenario's function.
+This resulted in an overhead value of around 0.0000004 seconds. 
+
+To find the averages of all the times, for loops to 1000 were used to repeatedly execute the commands and the difference between start and end times
+were stored and had the overhead substracted from this value. Then, this time was added to a variable totaltime across every for loop iteration
+before the end where this value was divided by 1000 and printed out. Because scenario 5 required manual execution, its average time was calculated 
+after only 10 time captures.
