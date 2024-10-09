@@ -26,7 +26,7 @@ void *allocate_page() {
 static void set_testing_ptbr(void) {
     ptbr = (size_t) allocate_page();
     // initialize all page table entries to zero
-    memset((void*)ptbr, 0, 4096); // assuming 4096 bytes for the page table
+    memset((void*)ptbr, 0, 4096);
 }
 
 // allocate a page for a specific virtual address
@@ -44,7 +44,7 @@ void page_allocate(size_t va) {
     if (!(pte & 1)) {
         void *data_page = allocate_page(); // allocate data page
         size_t physical_page_number = (size_t)data_page >> POBITS; // get page number
-        page_table[vpn] = (physical_page_number << 1) | 1; // set page table entry with valid bit
+        page_table[vpn] = (physical_page_number << POBITS) | 1; // set page table entry with valid bit
     }
 }
 
