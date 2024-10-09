@@ -29,6 +29,7 @@ static void set_testing_ptbr(void) {
     memset((void*)ptbr, 0, 4096); // assuming 4096 bytes for the page table
 }
 
+/*
 // translate virtual address into physical address
 size_t translate(size_t virtual_address) {
     if (ptbr == 0) {
@@ -48,7 +49,7 @@ size_t translate(size_t virtual_address) {
     }
 
     return ~0;
-}
+} */
 
 // allocate a page for a specific virtual address
 void page_allocate(size_t virtual_address) {
@@ -64,12 +65,13 @@ void page_allocate(size_t virtual_address) {
     // if the valid bit is not set, the page has not been allocated
     if (!(pte & 1)) {
         void *data_page = allocate_page(); // allocate data page
-        size_t physical_page_number = (size_t)data_page >> POBITS; // get page number
-        page_table[vpn] = (physical_page_number << 1) | 1; // set page table entry with valid bit
+
+        size_t ppn = ((size_t)data_page >> POBITS) & ((1UL << (64 - POBITS)) - 1);
+        page_table[vpn] = (ppn << 1) | 1; // set page table entry with valid bit
     }
 }
 
-/*
+
 int main() {
     page_allocate(3 << POBITS);
     size_t *pointer_to_table;
@@ -79,4 +81,4 @@ int main() {
         (int) (page_table_entry & 1),
         (long) (page_table_entry >> 12)
     );
-} */
+}
