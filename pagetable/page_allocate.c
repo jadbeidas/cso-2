@@ -8,7 +8,7 @@
 
 #define _XOPEN_SOURCE 700
 
-size_t ptbr;
+size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
 
 // align and allocate memory for a new page
@@ -29,28 +29,6 @@ static void set_testing_ptbr(void) {
     memset((void*)ptbr, 0, 4096); // assuming 4096 bytes for the page table
 }
 
-/*
-// translate virtual address into physical address
-size_t translate(size_t virtual_address) {
-    if (ptbr == 0) {
-        return ~0; // no page table exists
-    }
-
-    size_t vpn = virtual_address >> POBITS; // extract vpn
-    size_t offset = virtual_address & ((1 << POBITS) - 1); // extract offset
-
-    size_t *page_table = (size_t*)ptbr;
-    size_t pte = page_table[vpn]; // retrieve page table entry
-
-    // check if the valid bit, least significant bit, is set
-    if (pte & 1) {
-        size_t ppn = pte >> 1; // extract ppn
-        return (ppn << POBITS) | offset; // return physical address
-    }
-
-    return ~0;
-} */
-
 // allocate a page for a specific virtual address
 void page_allocate(size_t virtual_address) {
     if (ptbr == 0) {
@@ -70,7 +48,6 @@ void page_allocate(size_t virtual_address) {
     }
 }
 
-/*
 int main() {
     page_allocate(3 << POBITS);
     size_t *pointer_to_table;
@@ -80,4 +57,4 @@ int main() {
         (int) (page_table_entry & 1),
         (long) (page_table_entry >> 12)
     );
-} */
+}
