@@ -48,6 +48,7 @@ void page_allocate(size_t virtual_address) {
     }
 }
 
+/*
 int main() {
     page_allocate(3 << POBITS);
     size_t *pointer_to_table;
@@ -57,4 +58,4 @@ int main() {
         (int) (page_table_entry & 1),
         (long) (page_table_entry >> 12)
     );
-}
+} */
