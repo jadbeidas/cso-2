@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 700
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -5,8 +7,6 @@
 #include <string.h>
 #include "mlpt.h"
 #include "config.h"
-
-#define _XOPEN_SOURCE 700
 
 size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
@@ -30,12 +30,12 @@ static void set_testing_ptbr(void) {
 }
 
 // allocate a page for a specific virtual address
-void page_allocate(size_t virtual_address) {
+void page_allocate(size_t va) {
     if (ptbr == 0) {
         set_testing_ptbr();
     }
 
-    size_t vpn = virtual_address >> POBITS; // extract vpn
+    size_t vpn = va >> POBITS; // extract vpn
 
     size_t *page_table = (size_t*)ptbr;
     size_t pte = page_table[vpn]; // check if page is allocated already
