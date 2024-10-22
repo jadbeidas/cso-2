@@ -9,7 +9,7 @@
 size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
 
-#define INDEX_BITS 9
+#define INDEX_BITS (POBITS - 3)
 #define INDEX_MASK ((1UL << INDEX_BITS) - 1)
 #define PAGE_OFFSET_MASK ((1UL << POBITS) - 1)
 
