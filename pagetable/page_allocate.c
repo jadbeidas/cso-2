@@ -53,7 +53,7 @@ void page_allocate(size_t va) {
     }
 
     // iterate through page table levels
-    for(int i = 0; i < LEVELS; i++) {
+    for(int i = 0; i < LEVELS-1; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
@@ -91,7 +91,7 @@ size_t translate(size_t va) {
         return ((size_t)cur_table[index] & ~1) | pageOffset;
     }
 
-    for(int i = 0; i < LEVELS; i++) {
+    for(int i = 0; i < LEVELS-1; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
         if ((cur_table[index] & 1) == 0) {
@@ -104,13 +104,12 @@ size_t translate(size_t va) {
 
     index = (vpn & INDEX_MASK);
     if ((cur_table[index] & 1) == 0) {
-
         return 0xFFFFFFFFFFFFFFFF;
     }
     return ((size_t)cur_table & ~1) | pageOffset;
 }
 
-void print_translation(size_t va) {
+/*void print_translation(size_t va) {
     size_t pa = translate(va);
     if (pa == 0xFFFFFFFFFFFFFFFF) {
         printf("VA 0x%lx -> Invalid (not allocated)\n", va);
@@ -156,4 +155,4 @@ int main() {
     print_translation(0xFFFFFFFF);  // Upper limit
 
     return 0;
-}
+} */
