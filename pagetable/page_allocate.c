@@ -40,6 +40,18 @@ void page_allocate(size_t va) {
     size_t vpn = va >> POBITS; // extract vpn
     size_t *cur_table = (size_t*)ptbr;
     size_t index;
+
+    if (LEVELS == 1) {
+        size_t *cur_table = (size_t *)ptbr;
+        size_t index = (va >> POBITS) & INDEX_MASK;
+        if ((cur_table[index] & 1) == 0) {
+            cur_table[index] = (size_t)allocate_page();
+            memset((void *)(cur_table[index] & ~PAGE_OFFSET_MASK), 0, 4096);
+            cur_table[index] |= 1;
+        }
+        return;
+    }
+
     // iterate through page table levels
     for(int i = 0; i < LEVELS; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
@@ -48,8 +60,8 @@ void page_allocate(size_t va) {
         if((cur_table[index] & 1) == 0) {
             // allocate and initialize new page table if necessary
             cur_table[index] = (size_t)allocate_page();
-            cur_table[index] = cur_table[index] | 1;
             memset((void*)(cur_table[index] & ~PAGE_OFFSET_MASK), 0, 4096);
+            cur_table[index] |= 1;
         }
 
         cur_table = (size_t*)(cur_table[index] & ~PAGE_OFFSET_MASK); // next page table
@@ -58,7 +70,7 @@ void page_allocate(size_t va) {
     index = (va >> POBITS) & INDEX_MASK;
     if((cur_table[index] & 1) == 0) {
             cur_table[index] = (size_t)allocate_page();
-            cur_table[index] = cur_table[index] | 1;
+            cur_table[index] |= 1;
     }
 }
 
@@ -70,6 +82,16 @@ size_t translate(size_t va) {
     size_t vpn = va >> POBITS; // extract vpn
     size_t index;
     size_t *cur_table = (size_t*) ptbr;
+
+    if (LEVELS == 1) {
+        size_t *cur_table = (size_t *)ptbr;
+        size_t index = (va >> POBITS) & INDEX_MASK;
+        if ((cur_table[index] & 1) == 0) {
+            return 0xFFFFFFFFFFFFFFFF;
+        }
+        return ((size_t)cur_table[index] & ~1) | (va & PAGE_OFFSET_MASK);
+    }
+
     for(int i = 0; i < LEVELS; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
@@ -80,17 +102,55 @@ size_t translate(size_t va) {
         cur_table = (size_t*)(cur_table[index] & ~PAGE_OFFSET_MASK); // next page table
     }
 
-    return (size_t)cur_table | (va & ((1 << POBITS) - 1));
+    //return (size_t)cur_table | (va & ((1 << POBITS) - 1));
+    return ((size_t)cur_table & ~1) | (va & PAGE_OFFSET_MASK);
+
 }
 
-/*
+void print_translation(size_t va) {
+    size_t pa = translate(va);
+    if (pa == 0xFFFFFFFFFFFFFFFF) {
+        printf("VA 0x%lx -> Invalid (not allocated)\n", va);
+    } else {
+        printf("VA 0x%lx -> PA 0x%lx\n", va, pa);
+    }
+}
+
 int main() {
-    page_allocate(3 << POBITS);
-    size_t *pointer_to_table;
-    pointer_to_table = (size_t *) ptbr;
-    size_t page_table_entry = pointer_to_table[3];
-    printf("PTE @ index 3: valid bit=%d  physical page number=0x%lx\n",
-        (int) (page_table_entry & 1),
-        (long) (page_table_entry >> 12)
-    );
-} */
+    // Test cases for page allocation and translation
+    size_t test_addresses[] = {
+        0x00000000,   // Edge case: beginning of address space
+        0x00001000,   // Normal case: first page
+        0x00002000,   // Normal case: second page
+        0x00100000,   // Higher address: page 256
+        0x00200000,   // Higher address: page 512
+        0x3FFFFFFF,   // Edge case: near the end of address space
+        0xFFFFFFFF    // Edge case: max possible address
+    };
+    
+    size_t num_tests = sizeof(test_addresses) / sizeof(test_addresses[0]);
+
+    // Allocate pages for the test addresses
+    for (size_t i = 0; i < num_tests; i++) {
+        printf("Allocating page for VA 0x%lx...\n", test_addresses[i]);
+        page_allocate(test_addresses[i]);
+    }
+
+    // Test translations for the allocated pages
+    printf("\nTesting translations:\n");
+    for (size_t i = 0; i < num_tests; i++) {
+        print_translation(test_addresses[i]);
+    }
+
+    // Test translating an unallocated address
+    size_t unallocated_va = 0x00003000; // This address was never allocated
+    printf("\nTesting translation for unallocated VA 0x%lx:\n", unallocated_va);
+    print_translation(unallocated_va);
+
+    // Test boundary conditions
+    printf("\nTesting boundary translations:\n");
+    print_translation(0x3FFFFFFF); // Near upper limit
+    print_translation(0xFFFFFFFF);  // Upper limit
+
+    return 0;
+}
