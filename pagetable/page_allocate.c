@@ -9,7 +9,7 @@
 size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
 
-#define INDEX_BITS ((64 - POBITS) / LEVELS)
+#define INDEX_BITS 9
 #define INDEX_MASK ((1UL << INDEX_BITS) - 1)
 #define PAGE_OFFSET_MASK ((1UL << POBITS) - 1)
 
@@ -41,11 +41,17 @@ void page_allocate(size_t va) {
     size_t *cur_table = (size_t*)ptbr;
     size_t index;
 
+    printf("Allocating page for VA 0x%lx, VPN 0x%lx\n", va, vpn); // Debugging statement
+
+
     if (LEVELS == 1) {
-        size_t *cur_table = (size_t *)ptbr;
-        size_t index = (va >> POBITS) & INDEX_MASK;
+        index = vpn & INDEX_MASK;
+        printf("Level 1: Index 0x%lx\n", index); // Debugging statement
+
         if ((cur_table[index] & 1) == 0) {
             cur_table[index] = (size_t)allocate_page();
+            printf("Allocated new page at index 0x%lx, cur_table[%lx] = 0x%lx\n", index, index, cur_table[index]); // Debugging statement
+
             memset((void *)(cur_table[index] & ~PAGE_OFFSET_MASK), 0, 4096);
             cur_table[index] |= 1;
         }
@@ -57,19 +63,29 @@ void page_allocate(size_t va) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
+        printf("Level %d: Shift %d, Index 0x%lx, cur_table = %p\n", i, shift, index, (void*)cur_table); // Debugging statement
         if((cur_table[index] & 1) == 0) {
             // allocate and initialize new page table if necessary
             cur_table[index] = (size_t)allocate_page();
+
+            printf("Allocated new page table for level %d at index 0x%lx, cur_table[%lx] = 0x%lx\n", i, index, index, cur_table[index]); // Debugging statement
+
             memset((void*)(cur_table[index] & ~PAGE_OFFSET_MASK), 0, 4096);
             cur_table[index] |= 1;
         }
 
         cur_table = (size_t*)(cur_table[index] & ~PAGE_OFFSET_MASK); // next page table
+        printf("Moving to next level: cur_table = %p\n", (void*)cur_table); // Debugging statement
+
     }
 
     index = (va >> POBITS) & INDEX_MASK;
+    printf("Final level index: 0x%lx\n", index); // Debugging statement
+
     if((cur_table[index] & 1) == 0) {
             cur_table[index] = (size_t)allocate_page();
+            printf("Allocated page at final level: cur_table[%lx] = 0x%lx\n", index, cur_table[index]); // Debugging statement
+
             cur_table[index] |= 1;
     }
 }
@@ -83,9 +99,13 @@ size_t translate(size_t va) {
     size_t index;
     size_t *cur_table = (size_t*) ptbr;
 
+    printf("Translating VA 0x%lx, VPN 0x%lx\n", va, vpn); // Debugging statement
+
+
     if (LEVELS == 1) {
-        size_t *cur_table = (size_t *)ptbr;
-        size_t index = (va >> POBITS) & INDEX_MASK;
+        index = vpn & INDEX_MASK;
+        printf("Level 1: Index 0x%lx\n", index); // Debugging statement
+
         if ((cur_table[index] & 1) == 0) {
             return 0xFFFFFFFFFFFFFFFF;
         }
@@ -95,15 +115,24 @@ size_t translate(size_t va) {
     for(int i = 0; i < LEVELS; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
+        printf("Level %d: Shift %d, Index 0x%lx, cur_table = %p\n", i, shift, index, (void *)cur_table); // Debugging statement
 
         if ((cur_table[index] & 1) == 0) {
+            printf("Page table not found at level %d, index 0x%lx\n", i, index); // Debugging statement
+
             return 0xFFFFFFFFFFFFFFFF;
         }
         cur_table = (size_t*)(cur_table[index] & ~PAGE_OFFSET_MASK); // next page table
+        printf("Moving to next level: cur_table = %p\n", (void *)cur_table); // Debugging statement
+
     }
 
     index = (vpn & INDEX_MASK);
+    printf("Final level index: 0x%lx\n", index); // Debugging statement
+
     if ((cur_table[index] & 1) == 0) {
+        printf("Page not found at final index 0x%lx\n", index); // Debugging statement
+
         return 0xFFFFFFFFFFFFFFFF;
     }
 
