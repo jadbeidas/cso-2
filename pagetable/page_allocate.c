@@ -106,7 +106,7 @@ size_t translate(size_t va) {
     if ((cur_table[index] & 1) == 0) {
         return 0xFFFFFFFFFFFFFFFF;
     }
-    return ((size_t)cur_table & ~1) | pageOffset;
+    return ((size_t)(cur_table & ~1)) | pageOffset;
 }
 
 /*void print_translation(size_t va) {
