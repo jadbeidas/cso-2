@@ -9,7 +9,7 @@
 size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
 
-#define INDEX_BITS (64 - POBITS) / LEVELS
+#define INDEX_BITS ((64 - POBITS) / LEVELS)
 #define INDEX_MASK ((1UL << INDEX_BITS) - 1)
 #define PAGE_OFFSET_MASK ((1UL << POBITS) - 1)
 
@@ -49,10 +49,10 @@ void page_allocate(size_t va) {
             // allocate and initialize new page table if necessary
             cur_table[index] = (size_t)allocate_page();
             cur_table[index] = cur_table[index] | 1;
-            memset((void*)(cur_table[index] & PAGE_OFFSET_MASK), 0, 4096);
+            memset((void*)(cur_table[index] & ~PAGE_OFFSET_MASK), 0, 4096);
         }
 
-        cur_table = (size_t*)(cur_table[index] & PAGE_OFFSET_MASK); // next page table
+        cur_table = (size_t*)(cur_table[index] & ~PAGE_OFFSET_MASK); // next page table
     }
 
     index = (va >> POBITS) & INDEX_MASK;
@@ -74,10 +74,10 @@ size_t translate(size_t va) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
-        if ((ptbr & 1) == 0) {
+        if ((cur_table[index] & 1) == 0) {
         return 0xFFFFFFFFFFFFFFFF;
     }
-        cur_table = (size_t*)(cur_table[index] & PAGE_OFFSET_MASK); // next page table
+        cur_table = (size_t*)(cur_table[index] & ~PAGE_OFFSET_MASK); // next page table
     }
 
     return (size_t)cur_table | (va & ((1 << POBITS) - 1));
