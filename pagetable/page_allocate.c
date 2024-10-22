@@ -2,14 +2,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
-#include <stdalign.h>
 #include <string.h>
 #include "mlpt.h"
 #include "config.h"
 
 size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
+
+#define INDEX_BITS (64 - POBITS) / LEVELS
+#define INDEX_MASK ((1UL << INDEX_BITS) - 1)
+#define PAGE_OFFSET_MASK ((1UL << POBITS) - 1)
 
 // align and allocate memory for a new page
 void *allocate_page() {
@@ -36,16 +38,49 @@ void page_allocate(size_t va) {
     }
 
     size_t vpn = va >> POBITS; // extract vpn
+    size_t *cur_table = (size_t*)ptbr;
+    size_t index;
+    // iterate through page table levels
+    for(int i = 0; i < LEVELS; i++) {
+        int shift = (LEVELS - i - 1) * INDEX_BITS;
+        index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
-    size_t *page_table = (size_t*)ptbr;
-    size_t pte = page_table[vpn]; // check if page is allocated already
+        if((cur_table[index] & 1) == 0) {
+            // allocate and initialize new page table if necessary
+            cur_table[index] = (size_t)allocate_page();
+            cur_table[index] = cur_table[index] | 1;
+            memset((void*)(cur_table[index] & PAGE_OFFSET_MASK), 0, 4096);
+        }
 
-    // if the valid bit is not set, the page has not been allocated
-    if (!(pte & 1)) {
-        void *data_page = allocate_page(); // allocate data page
-        size_t physical_page_number = (size_t)data_page >> POBITS; // get page number
-        page_table[vpn] = (physical_page_number << POBITS) | 1; // set page table entry with valid bit
+        cur_table = (size_t*)(cur_table[index] & PAGE_OFFSET_MASK); // next page table
     }
+
+    index = (va >> POBITS) & INDEX_MASK;
+    if((cur_table[index] & 1) == 0) {
+            cur_table[index] = (size_t)allocate_page();
+            cur_table[index] = cur_table[index] | 1;
+    }
+}
+
+size_t translate(size_t va) {
+    if (ptbr == 0) {
+        return 0xFFFFFFFFFFFFFFFF;
+    }
+
+    size_t vpn = va >> POBITS; // extract vpn
+    size_t index;
+    size_t *cur_table = (size_t*) ptbr;
+    for(int i = 0; i < LEVELS; i++) {
+        int shift = (LEVELS - i - 1) * INDEX_BITS;
+        index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
+
+        if ((ptbr & 1) == 0) {
+        return 0xFFFFFFFFFFFFFFFF;
+    }
+        cur_table = (size_t*)(cur_table[index] & PAGE_OFFSET_MASK); // next page table
+    }
+
+    return (size_t)cur_table | (va & ((1 << POBITS) - 1));
 }
 
 /*
