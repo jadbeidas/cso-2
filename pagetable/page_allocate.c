@@ -41,6 +41,17 @@ void page_allocate(size_t va) {
     size_t *cur_table = (size_t*)ptbr;
     size_t index;
 
+    if (LEVELS == 1) {
+        size_t *cur_table = (size_t *)ptbr;
+        size_t index = (va >> POBITS) & INDEX_MASK;
+        if ((cur_table[index] & 1) == 0) {
+            cur_table[index] = (size_t)allocate_page();
+            memset((void *)(cur_table[index] & ~PAGE_OFFSET_MASK), 0, 4096);
+            cur_table[index] |= 1;
+        }
+        return;
+    }
+
     // iterate through page table levels
     for(int i = 0; i < LEVELS; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
@@ -71,6 +82,15 @@ size_t translate(size_t va) {
     size_t vpn = va >> POBITS; // extract vpn
     size_t index;
     size_t *cur_table = (size_t*) ptbr;
+
+    if (LEVELS == 1) {
+        size_t *cur_table = (size_t *)ptbr;
+        size_t index = (va >> POBITS) & INDEX_MASK;
+        if ((cur_table[index] & 1) == 0) {
+            return 0xFFFFFFFFFFFFFFFF;
+        }
+        return ((size_t)cur_table[index] & ~1) | (va & PAGE_OFFSET_MASK);
+    }
 
     for(int i = 0; i < LEVELS; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
