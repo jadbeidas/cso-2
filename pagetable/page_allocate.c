@@ -52,7 +52,7 @@ void page_allocate(size_t va) {
         if((cur_table[index] & 1) == 0) {
             void *newpt = NULL;
 
-            if (posix_memalign((void **)&newpt, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) == 0) {
+            if (posix_memalign((void **)&newpt, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) != 0) {
                 size_t *newpt_ptr = (size_t *)newpt;
 
                 for (size_t i = 0; i < TOTAL_ENTRIES; i++) {
@@ -60,7 +60,7 @@ void page_allocate(size_t va) {
                     newpt_ptr[i] = 0; // initialize everything to 0
                 }
 
-                cur_table[index] = ((size_t)newpt & ~(PAGE_OFFSET_MASK)) | 1; // store the page table and set its valid bit
+                cur_table[index] = ((size_t)newpt & ~(PAGE_OFFSET_MASK)) | 1;
             } else {
                 fprintf(stderr, "posix_memalign failed");
                 exit(127);
@@ -68,6 +68,20 @@ void page_allocate(size_t va) {
         }
 
         cur_table = (size_t*)((cur_table[index] & ~PAGE_OFFSET_MASK)); // next page table
+    }
+
+    size_t finalIndex = vpn & INDEX_MASK;
+
+    if((cur_table[finalIndex] & 1) == 0) {
+    void *pp = NULL;
+        if (posix_memalign((void **)&pp, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) != 0) {
+            size_t ppn = ((size_t)pp >> POBITS);
+
+            cur_table[finalIndex] = (ppn << POBITS) | 1;
+        } else {
+            fprintf(stderr, "posix_memalign failed");
+            exit(127);
+        }
     }
 }
 
