@@ -54,6 +54,11 @@ void page_allocate(size_t va) {
 
         cur_table = (size_t*)((cur_table[index] & ~1)); // next page table
     }
+
+    size_t final_index = vpn & INDEX_MASK;
+    if ((cur_table[final_index] & 1) == 0) {
+        cur_table[final_index] = (size_t)allocate_page() | 1; // mark as valid and set the physical page
+    }
 }
 
 size_t translate(size_t va) {
@@ -74,11 +79,15 @@ size_t translate(size_t va) {
             return 0xFFFFFFFFFFFFFFFF;
         }
         cur_table = (size_t*)(cur_table[index] & ~1); // next page table
-
     }
-    size_t physical_address = cur_table[index] & ~1;
-    return physical_address | pageOffset;
 
+    size_t final_index = vpn & INDEX_MASK;
+    if ((cur_table[final_index] & 1) == 0) {
+        return 0xFFFFFFFFFFFFFFFF;
+    }
+
+    size_t physical_address = cur_table[final_index] & ~PAGE_OFFSET_MASK;
+    return physical_address | pageOffset;
 }
 
 void print_translation(size_t va) {
