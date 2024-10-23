@@ -18,7 +18,7 @@ static size_t allocation_count = 0; // keep track of pages
 // align and allocate memory for a new page
 void *allocate_page() {
     void *page;
-    if(posix_memalign(&page, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) != 0) {
+    if(posix_memalign((void**)&page, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) != 0) {
         fprintf(stderr, "posix_memalign failed");
         exit(127);
     }
