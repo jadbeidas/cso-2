@@ -95,7 +95,7 @@ size_t translate(size_t va) {
         cur_table = (size_t*)(pte & ~INDEX_MASK); // next page table
     }
 
-    size_t finalIndex = vpn & PAGE_OFFSET_MASK;
+    size_t finalIndex = vpn & INDEX_MASK;
     size_t pte = cur_table[finalIndex];
     if (!(pte & 1)) {
         return 0xFFFFFFFFFFFFFFFF;
