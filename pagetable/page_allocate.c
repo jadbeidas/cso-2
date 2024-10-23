@@ -106,17 +106,17 @@ size_t translate(size_t va) {
     if ((cur_table[index] & 1) == 0) {
         return 0xFFFFFFFFFFFFFFFF;
     }
-    return ((size_t)(cur_table & ~1)) | pageOffset;
+    return ((size_t)cur_table & ~1) | pageOffset;
 }
 
-/*void print_translation(size_t va) {
+void print_translation(size_t va) {
     size_t pa = translate(va);
     if (pa == 0xFFFFFFFFFFFFFFFF) {
         printf("VA 0x%lx -> Invalid (not allocated)\n", va);
     } else {
         printf("VA 0x%lx -> PA 0x%lx\n", va, pa);
     }
-}
+} 
 
 int main() {
     // Test cases for page allocation and translation
@@ -155,4 +155,4 @@ int main() {
     print_translation(0xFFFFFFFF);  // Upper limit
 
     return 0;
-} */
+}
