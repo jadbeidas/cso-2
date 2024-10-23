@@ -63,7 +63,7 @@ void page_allocate(size_t va) {
             cur_table[index] |= 1;
         }
 
-        cur_table = (size_t*)(cur_table[index] & ~1); // next page table
+        cur_table = (size_t*)((cur_table[index] & ~1)); // next page table
     }
 
     index = vpn & INDEX_MASK;
