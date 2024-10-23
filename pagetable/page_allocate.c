@@ -80,13 +80,12 @@ size_t translate(size_t va) {
     }
 
     size_t vpn = va >> POBITS; // extract vpn
-    size_t index;
     size_t *cur_table = (size_t*) ptbr;
     size_t pageOffset = va & PAGE_OFFSET_MASK;
 
     for(int i = 0; i < LEVELS - 1; i++) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
-        index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
+        size_t index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
         size_t pte = cur_table[index];
 
         if (!(pte & 1)) {
