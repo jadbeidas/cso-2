@@ -77,7 +77,7 @@ size_t translate(size_t va) {
 
             return 0xFFFFFFFFFFFFFFFF;
         }
-        cur_table = (size_t*)(pte & INDEX_MASK); // next page table
+        cur_table = (size_t*)(pte & ~INDEX_MASK); // next page table
     }
 
     size_t finalIndex = vpn & PAGE_OFFSET_MASK;
