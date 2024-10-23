@@ -42,8 +42,8 @@ void page_allocate(size_t va) {
     size_t index;
 
     // iterate through page table levels
-    for(int i = 0; i < LEVELS-1; i++) {
-        int shift = (LEVELS - i - 1) * INDEX_BITS;
+    for(int i = 1; i <= LEVELS; i++) {
+        int shift = (LEVELS - i) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
         if((cur_table[index] & 1) == 0) {
@@ -53,12 +53,6 @@ void page_allocate(size_t va) {
         }
 
         cur_table = (size_t*)((cur_table[index] & ~1)); // next page table
-    }
-
-    index = vpn & INDEX_MASK;
-    if((cur_table[index] & 1) == 0) {
-            cur_table[index] = (size_t)allocate_page();
-            cur_table[index] |= 1;
     }
 }
 
@@ -72,8 +66,8 @@ size_t translate(size_t va) {
     size_t *cur_table = (size_t*) ptbr;
     size_t pageOffset = va & PAGE_OFFSET_MASK;
 
-    for(int i = 0; i < LEVELS-1; i++) {
-        int shift = (LEVELS - i - 1) * INDEX_BITS;
+    for(int i = 1; i <= LEVELS; i++) {
+        int shift = (LEVELS - i) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
         if ((cur_table[index] & 1) == 0) {
 
@@ -82,12 +76,7 @@ size_t translate(size_t va) {
         cur_table = (size_t*)(cur_table[index] & ~1); // next page table
 
     }
-
-    size_t page_entry = cur_table[index];
-    if (!(page_entry & 1)) {
-        return 0xFFFFFFFFFFFFFFFF;
-    }
-    size_t physical_address = page_entry & ~1;
+    size_t physical_address = cur_table[index] & ~1;
     return physical_address | pageOffset;
 
 }
