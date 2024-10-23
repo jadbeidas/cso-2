@@ -9,7 +9,6 @@
 size_t ptbr = 0;
 static size_t allocation_count = 0; // keep track of pages
 
-#define ENTRY_SIZE 8
 #define PAGE_TABLE_SIZE (1UL << POBITS)
 #define INDEX_BITS (POBITS - 3)
 #define INDEX_MASK ((1UL << INDEX_BITS) - 1)
@@ -102,11 +101,13 @@ size_t translate(size_t va) {
 
     }
 
-    index = (vpn & INDEX_MASK);
-    if ((cur_table[index] & 1) == 0) {
+    size_t page_entry = cur_table[index];
+    if (!(page_entry & 1)) {
         return 0xFFFFFFFFFFFFFFFF;
     }
-    return ((size_t)cur_table & ~1) | pageOffset;
+    size_t physical_address = page_entry & ~1;
+    return physical_address | pageOffset;
+
 }
 
 void print_translation(size_t va) {
