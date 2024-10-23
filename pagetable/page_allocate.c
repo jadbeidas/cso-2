@@ -69,7 +69,7 @@ size_t translate(size_t va) {
     size_t pageOffset = va & PAGE_OFFSET_MASK;
 
     for(int i = 0; i < LEVELS - 1; i++) {
-        int shift = (LEVELS - i) * INDEX_BITS;
+        int shift = (LEVELS - i - 1) * INDEX_BITS;
         index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
         size_t pte = cur_table[index];
 
