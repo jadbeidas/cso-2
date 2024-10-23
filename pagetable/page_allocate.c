@@ -50,8 +50,21 @@ void page_allocate(size_t va) {
         size_t index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
         if((cur_table[index] & 1) == 0) {
-            // allocate and initialize new page table if necessary
-            cur_table[index] = (size_t)allocate_page() | 1;
+            void *newpt = NULL;
+
+            if (posix_memalign((void **)&newpt, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) == 0) {
+                size_t *newpt_ptr = (size_t *)newpt;
+
+                for (size_t i = 0; i < TOTAL_ENTRIES; i++) {
+
+                    newpt_ptr[i] = 0; // initialize everything to 0
+                }
+
+                cur_table[index] = ((size_t)newpt & ~(PAGE_OFFSET_MASK)) | 1; // store the page table and set its valid bit
+            } else {
+                fprintf(stderr, "posix_memalign failed");
+                exit(127);
+            }
         }
 
         cur_table = (size_t*)((cur_table[index] & ~PAGE_OFFSET_MASK)); // next page table
