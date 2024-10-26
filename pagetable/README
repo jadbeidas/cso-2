@@ -1,0 +1,17 @@
+This project implements a basic page table system for virtual memory translation. It allows allocating page tables and translating virtual 
+addresses to physical addresses using multiple levels. In config.h, two main parameters control the system, which can be adjusted manually. 
+The LEVELS setting defines the number of Page Table Entries (PTEs) used to translate an address. By default, LEVELS is set to 1, meaning the 
+system uses a single level page table. The POBITS setting is set to 12 by default, and specifies how many bits are used for the page offset, 
+which determines the size of each memory page.
+
+To support deallocation, we propose adding a function called page_deallocate, which would free the memory and page tables associated with a 
+given virtual address: void page_deallocate(size_t va). This function would traverse the page table and free any memory that is no longer being 
+used, however, implementing this function would require changes to the existing system. The current design does not track how many addresses use 
+a page table, making it unsafe to deallocate without adding reference counting or tracking valid entries. The page_allocate method would need 
+to be updated to track this usage, and translate would need to ensure it does not access freed memory.
+
+The current limitations of the system include the lack of handling page faults or memory replacement. Also, although basic error handling is 
+included for memory allocation failures, error handling does not cover invalid memory access. All of these are potential future improvements. 
+In terms of time complexity, translating an address and page allocation both take O(LEVELS) time.
+
+I would like to acknowledge the POSIX API, especially posix_memalign, and GNU documentation, which were helpful in developing this project.

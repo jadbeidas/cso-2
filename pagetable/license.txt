@@ -1,0 +1,8 @@
+The MIT License is very permissive and allows anyone to use, modify, and share the code for either open-source and commercial purposes. The only requirement is to include the original license in any copies.
+I chose this license to allow flexibility for anyone using the code for whatever purpose.
+
+GPL v3 is a strong copyleft license which allows free use and modification of the code, with the constraint that it requires that any changes or derivative works must also be open-source and licensed under GPL.
+I did not choose this license because it would force any project using the code to inherently be open-source, which I don't want to impose.
+
+The Apache License is similar to MIT allowing free use, modification, and distribution, but includes extra protections such as a patent license.
+I did not choose this license because it’s more legally complex than the MIT license which does the job for this project.

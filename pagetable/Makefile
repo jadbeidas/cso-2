@@ -1,17 +1,16 @@
 CC = gcc
-CFLAGS = -D_XOPEN_SOURCE=700 -Og -g -std=c11 -Wall -pedantic 
-#-fsanitize=address
-LDFLAGS = -fsanitize=address
+CFLAGS = -Wall
+LDFLAGS = -static
 
-all: page_allocate
+all: libmlpt.a
+
+libmlpt.a: page_allocate.o
+	ar rcs -o libmlpt.a page_allocate.o
 
 page_allocate.o:  page_allocate.c mlpt.h config.h
-	$(CC) $(CFLAGS) -c page_allocate.c -o page_allocate.o
-
-page_allocate: page_allocate.o
-	$(CC) $(LDFLAGS) -o page_allocate page_allocate.o
+	$(CC) $(CFLAGS) $(LDFLAGS) -c page_allocate.c -o page_allocate.o
 
 clean:
-	rm --force *.o page_allocate
+	rm --force *.o libmlpt.a
 
 .PHONY: all clean

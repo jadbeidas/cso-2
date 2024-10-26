@@ -19,12 +19,12 @@ size_t ptbr = 0;
 // allocate a page for a specific virtual address
 void page_allocate(size_t va) {
     if (ptbr == 0) {
-        if(posix_memalign((void**)&ptbr, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) != 0) {
+        if (posix_memalign((void **)&ptbr, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) != 0) {
             fprintf(stderr, "posix_memalign failed");
             exit(127);
         }
         size_t *pt = (size_t *)ptbr;
-        for(int i = 0; i < TOTAL_ENTRIES; i++)
+        for (int i = 0; i < TOTAL_ENTRIES; ++i)
         {
             pt[i] = 0;
         }
@@ -34,17 +34,17 @@ void page_allocate(size_t va) {
     size_t *cur_table = (size_t*)ptbr;
 
     // iterate through page table levels
-    for(int i = 0; i < LEVELS - 1; i++) {
+    for (int i = 0; i < LEVELS - 1; ++i) {
         int shift = (LEVELS - i - 1) * (INDEX_BITS);
         size_t index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
 
-        if(!(cur_table[index] & 1)) {
+        if (!(cur_table[index] & 1)) {
             void *newpt = NULL;
 
             if (posix_memalign((void **)&newpt, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) == 0) {
                 size_t *newpt_ptr = (size_t *)newpt;
 
-                for (size_t i = 0; i < TOTAL_ENTRIES; i++) {
+                for (size_t i = 0; i < TOTAL_ENTRIES; ++i) {
 
                     newpt_ptr[i] = 0;
                 }
@@ -56,17 +56,17 @@ void page_allocate(size_t va) {
             }
         }
 
-        cur_table = (size_t*)((cur_table[index] & ~PAGE_OFFSET_MASK)); // next page table
+        cur_table = (size_t *)((cur_table[index] & ~PAGE_OFFSET_MASK)); // next page table
     }
 
-    size_t finalIndex = vpn & INDEX_MASK;
+    size_t final_index = vpn & INDEX_MASK;
 
-    if(!(cur_table[finalIndex] & 1)) {
+    if (!(cur_table[final_index] & 1)) {
     void *pp = NULL;
         if (posix_memalign((void **)&pp, PAGE_TABLE_SIZE, PAGE_TABLE_SIZE) == 0) {
             size_t ppn = ((size_t)pp >> POBITS);
 
-            cur_table[finalIndex] = (ppn << POBITS) | 1;
+            cur_table[final_index] = (ppn << POBITS) | 1;
         } else {
             fprintf(stderr, "posix_memalign failed");
             exit(127);
@@ -81,9 +81,9 @@ size_t translate(size_t va) {
 
     size_t vpn = va >> POBITS; // extract vpn
     size_t *cur_table = (size_t*) ptbr;
-    size_t pageOffset = va & PAGE_OFFSET_MASK;
+    size_t page_offset = va & PAGE_OFFSET_MASK;
 
-    for(int i = 0; i < LEVELS - 1; i++) {
+    for (int i = 0; i < LEVELS - 1; ++i) {
         int shift = (LEVELS - i - 1) * INDEX_BITS;
         size_t index = (vpn >> shift) & INDEX_MASK; // extracting the index bits respective for this level
         size_t pte = cur_table[index];
@@ -95,11 +95,11 @@ size_t translate(size_t va) {
         cur_table = (size_t*)(pte & ~INDEX_MASK); // next page table
     }
 
-    size_t finalIndex = vpn & INDEX_MASK;
-    size_t pte = cur_table[finalIndex];
+    size_t final_index = vpn & INDEX_MASK;
+    size_t pte = cur_table[final_index];
     if (!(pte & 1)) {
         return 0xFFFFFFFFFFFFFFFF;
     }  
     size_t ppn = pte >> POBITS;
-    return (ppn << POBITS) | pageOffset;
+    return (ppn << POBITS) | page_offset;
 }
