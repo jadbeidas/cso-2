@@ -14,26 +14,18 @@ typedef struct {
 
 void *task_executor(void *arg) {
     ThreadArgs *thread_args = (ThreadArgs *)arg;
-    LifeBoard *state1 = thread_args -> state1;
-    LifeBoard *state2 = thread_args -> state2;
-    int steps = thread_args -> steps;
-    int begin_row = thread_args -> begin_row;
-    int final_row = thread_args -> final_row;
-    pthread_barrier_t *barrier = thread_args -> barrier;
+    LifeBoard *state1 = thread_args->state1;
+    LifeBoard *state2 = thread_args->state2;
+    int steps = thread_args->steps;
+    int begin_row = thread_args->begin_row;
+    int final_row = thread_args->final_row;
+    pthread_barrier_t *barrier = thread_args->barrier;
 
-    int width = state1 -> width;
+    int width = state1->width;
 
     for (int step = 0; step < steps; step += 1) {
-        LifeBoard *curr_state;
-        LifeBoard *next_state;
-
-        if (steps % 2 == 0) {
-            curr_state = state1;
-            next_state = state2;
-        } else {
-            curr_state = state2;
-            next_state = state1;
-        }
+        LifeBoard *curr_state = (step % 2 == 0) ? state1 : state2;
+        LifeBoard *next_state = (step % 2 == 0) ? state2 : state1;
 
         for (int y = begin_row; y < final_row; y += 1) {
             for (int x = 1; x < width - 1; x += 1) {
@@ -41,23 +33,14 @@ void *task_executor(void *arg) {
 
                 for (int y_offset = -1; y_offset <= 1; y_offset+= 1) {
                     for (int x_offset = -1; x_offset <= 1; x_offset+= 1) {
-                        int neighbor_x = x + x_offset;
-                        int neighbor_y = y + y_offset;
-                        if (LB_get(curr_state, neighbor_x, neighbor_y)) {
-                            live_in_window += 1;
+                        if (x_offset != 0 || y_offset != 0) {
+                            live_in_window += LB_get(curr_state, x + x_offset, y + y_offset);
                         }
                     }
                 }
-                live_in_window -= LB_get(curr_state, x, y);
 
                 LifeCell current_cell = LB_get(curr_state, x, y);
-                LifeCell next_cell;
-                if (live_in_window == 3 || (live_in_window == 4 && current_cell)) {
-                    next_cell = 1;
-                } else {
-                    next_cell = 0;
-                }
-
+                LifeCell next_cell = (live_in_window == 3 || (current_cell && live_in_window == 2)) ? 1 : 0;
                 LB_set(next_state, x, y, next_cell);
             }
         }
@@ -73,8 +56,8 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
     pthread_barrier_t barrier;
     pthread_barrier_init(&barrier, NULL, threads);
 
-    pthread_t *thread_ids = malloc(threads * sizeof(pthread_t));
-    ThreadArgs *thread_args = malloc(threads * sizeof(ThreadArgs));
+    pthread_t thread_ids[threads];
+    ThreadArgs thread_args[threads];
 
     int total_rows = state -> height - 2;
     int rows_per_thread = total_rows / threads;
@@ -87,12 +70,7 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         thread_args[i].steps = steps;
         thread_args[i].barrier = &barrier;
 
-        int rows;
-        if (i < extra_rows) {
-            rows = rows_per_thread + 1;
-        } else {
-            rows = rows_per_thread;
-        }
+        int rows = rows_per_thread + (i < extra_rows ? 1 : 0);
 
         thread_args[i].begin_row = current_row;
         thread_args[i].final_row = current_row + rows;
@@ -105,17 +83,11 @@ void simulate_life_parallel(int threads, LifeBoard *state, int steps) {
         pthread_join(thread_ids[i], NULL);
     }
 
-    LifeBoard *final_state;
-    if (steps % 2 == 0) {
-        final_state = state1;
-    } else {
-        final_state = state2;
-    }
+    LifeBoard *final_state = (steps % 2 == 0) ? state1 : state2;
     memcpy(state->cells, final_state->cells, state->width * state->height * sizeof(LifeCell));
+
 
     pthread_barrier_destroy(&barrier);
     LB_del(state1);
     LB_del(state2);
-    free(thread_ids);
-    free(thread_args);
 }
