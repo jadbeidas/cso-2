@@ -41,13 +41,14 @@ void *task_executor(void *arg) {
 
                 for (int y_offset = -1; y_offset <= 1; y_offset+= 1) {
                     for (int x_offset = -1; x_offset <= 1; x_offset+= 1) {
-                        int neighbor_x = y + x_offset;
-                        int neighbor_y = x + y_offset;
+                        int neighbor_x = x + x_offset;
+                        int neighbor_y = y + y_offset;
                         if (LB_get(curr_state, neighbor_x, neighbor_y)) {
                             live_in_window += 1;
                         }
                     }
                 }
+                live_in_window -= LB_get(curr_state, x, y);
 
                 LifeCell current_cell = LB_get(curr_state, x, y);
                 LifeCell next_cell;
